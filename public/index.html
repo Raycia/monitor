@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LP Health Monitor — STLFLIX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0C0C0D;
+    --surface: #141416;
+    --surface-2: #1c1c1f;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.14);
+    --primary: #5166e6;
+    --primary-glow: rgba(81,102,230,0.25);
+    --accent: #b9ff46;
+    --text: #f5f5f5;
+    --text-2: #9a9aa8;
+    --text-3: #5c5c6b;
+    --ok: #22c55e;
+    --ok-bg: rgba(34,197,94,0.1);
+    --warn: #f59e0b;
+    --warn-bg: rgba(245,158,11,0.1);
+    --err: #ef4444;
+    --err-bg: rgba(239,68,68,0.1);
+    --font-h: 'Plus Jakarta Sans', sans-serif;
+    --font-b: 'Inter Tight', sans-serif;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-b);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  /* ── Header ── */
+  .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 40px; flex-wrap: wrap; }
+  .logo-row { display: flex; align-items: center; gap: 12px; }
+  .logo-img { height: 28px; opacity: 0.9; }
+  .header-title { font-family: var(--font-h); font-size: 22px; font-weight: 800; letter-spacing: -0.04em; color: var(--text); }
+  .header-sub { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); display: inline-block; margin-right: 6px; animation: pulse 2.4s ease-in-out infinite; }
+  .pulse-dot.dead { background: var(--err); animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+
+  .btn {
+    font-family: var(--font-b);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-hover);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn-primary:hover { background: #3d4ad4; border-color: #3d4ad4; }
+
+  /* ── Summary cards ── */
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 32px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .stat-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+  .stat-val { font-family: var(--font-h); font-size: 28px; font-weight: 800; letter-spacing: -0.04em; }
+  .stat-val.ok { color: var(--ok); }
+  .stat-val.warn { color: var(--warn); }
+  .stat-val.err { color: var(--err); }
+  .stat-val.neutral { color: var(--text); }
+
+  /* ── URL list ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .url-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 32px; }
+
+  .url-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    transition: border-color 0.15s;
+  }
+  .url-row:hover { border-color: var(--border-hover); }
+  .url-row.is-error { border-left: 2px solid var(--err); }
+  .url-row.is-warn { border-left: 2px solid var(--warn); }
+  .url-row.is-ok { border-left: 2px solid transparent; }
+
+  .status-indicator {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .si-ok { background: var(--ok); }
+  .si-warn, .si-slow, .si-redirect { background: var(--warn); }
+  .si-error { background: var(--err); animation: pulse 1.4s ease-in-out infinite; }
+  .si-pending { background: var(--text-3); }
+
+  .url-info { flex: 1; min-width: 0; }
+  .url-name { font-weight: 500; color: var(--text); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .url-href { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 100px;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+  }
+  .tag-type-checkout { background: rgba(139,92,246,0.15); color: #a78bfa; }
+  .tag-type-lp { background: rgba(81,102,230,0.15); color: #818cf8; }
+  .tag-type-cta { background: rgba(20,184,166,0.12); color: #5eead4; }
+  .tag-ok { background: var(--ok-bg); color: var(--ok); }
+  .tag-warn, .tag-slow, .tag-redirect { background: var(--warn-bg); color: var(--warn); }
+  .tag-error { background: var(--err-bg); color: var(--err); }
+  .tag-pending { background: rgba(255,255,255,0.05); color: var(--text-3); }
+
+  .url-time { font-size: 12px; color: var(--text-3); min-width: 56px; text-align: right; flex-shrink: 0; }
+
+  /* ── Log ── */
+  .log-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .log-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .log-title { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; }
+  .log-body { padding: 12px 16px; max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; }
+  .log-line { padding: 2px 0; color: var(--text-2); }
+  .log-line .lt { color: var(--text-3); }
+  .log-line.lok .lm { color: var(--ok); }
+  .log-line.lerr .lm { color: var(--err); }
+  .log-line.lwarn .lm { color: var(--warn); }
+  .log-line.lsys .lm { color: var(--primary); }
+
+  /* ── Last checked ── */
+  .footer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 24px; flex-wrap: wrap; gap: 10px; }
+  .last-check { font-size: 12px; color: var(--text-3); }
+
+  /* ── Progress ── */
+  .progress { height: 2px; background: var(--border); border-radius: 1px; margin-bottom: 24px; overflow: hidden; }
+  .progress-inner { height: 100%; background: var(--primary); width: 0%; transition: width 0.2s; }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { display: inline-block; animation: spin 0.9s linear infinite; }
+
+  @media (max-width: 600px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+    .url-href { display: none; }
+    .url-time { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div>
+      <div class="logo-row">
+        <img class="logo-img" src="https://lp.stlflix.com.br/wp-content/uploads/2025/09/logo-stlflix-blank.svg" alt="STLFLIX" />
+      </div>
+      <div class="header-title" style="margin-top:12px;">LP Health Monitor</div>
+      <div class="header-sub">
+        <span class="pulse-dot" id="live-dot"></span>
+        <span id="status-label">Aguardando verificação...</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="run-btn" onclick="runChecks()">
+      <span id="run-icon">↻</span> Verificar agora
+    </button>
+  </div>
+
+  <div class="summary">
+    <div class="stat"><div class="stat-label">Total</div><div class="stat-val neutral" id="s-total">—</div></div>
+    <div class="stat"><div class="stat-label">Online</div><div class="stat-val ok" id="s-ok">—</div></div>
+    <div class="stat"><div class="stat-label">Alertas</div><div class="stat-val warn" id="s-warn">—</div></div>
+    <div class="stat"><div class="stat-label">Erros</div><div class="stat-val err" id="s-err">—</div></div>
+  </div>
+
+  <div class="progress"><div class="progress-inner" id="progress"></div></div>
+
+  <div class="section-label">URLs monitoradas</div>
+  <div class="url-list" id="url-list">
+    <div style="color:var(--text-3);font-size:13px;padding:16px 0;">Clique em "Verificar agora" para iniciar.</div>
+  </div>
+
+  <div class="log-wrap">
+    <div class="log-header">
+      <span class="log-title">Log de verificações</span>
+      <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="clearLog()">Limpar</button>
+    </div>
+    <div class="log-body" id="log-body">
+      <div class="log-line lsys"><span class="lt">[--:--:--]</span> <span class="lm">Monitor iniciado. Aguardando primeira verificação.</span></div>
+    </div>
+  </div>
+
+  <div class="footer-row">
+    <div class="last-check" id="last-check">Nunca verificado</div>
+    <div style="font-size:11px;color:var(--text-3);">Atualiza automaticamente via Vercel Cron a cada 30 min</div>
+  </div>
+
+</div>
+
+<script>
+const CRON_SECRET = ''; // Deixe vazio se /api/check for público, ou preencha com CRON_SECRET
+
+let logs = [];
+let lastResults = [];
+
+function ts() {
+  return new Date().toLocaleTimeString('pt-BR');
+}
+
+function addLog(msg, type = '') {
+  logs.unshift({ msg, type, time: ts() });
+  if (logs.length > 80) logs.pop();
+  renderLog();
+}
+
+function clearLog() {
+  logs = [];
+  renderLog();
+}
+
+function renderLog() {
+  const box = document.getElementById('log-body');
+  box.innerHTML = logs.map(l => {
+    const cls = l.type ? 'l' + l.type : '';
+    return `<div class="log-line ${cls}"><span class="lt">[${l.time}]</span> <span class="lm">${escHtml(l.msg)}</span></div>`;
+  }).join('') || '<div class="log-line lsys"><span class="lm">Log vazio.</span></div>';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+const TYPE_LABEL = { lp: 'LP', checkout: 'Checkout', cta: 'CTA' };
+const STATUS_LABEL = { ok: 'Online', slow: 'Lento', redirect: 'Redirect', error: 'Erro', pending: 'Pendente', warn: 'Alerta' };
+
+function renderResults(results) {
+  const list = document.getElementById('url-list');
+  if (!results || results.length === 0) {
+    list.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:16px 0;">Nenhuma URL configurada.</div>';
+    return;
+  }
+
+  list.innerHTML = results.map(r => {
+    const s = r.status || 'pending';
+    const rowCls = s === 'error' ? 'is-error' : (s === 'slow' || s === 'warn' || s === 'redirect') ? 'is-warn' : 'is-ok';
+    const dotCls = 'si-' + s;
+    const tagCls = 'tag-' + s;
+    const typeCls = 'tag-type-' + (r.type || 'lp');
+    const statusText = STATUS_LABEL[s] || s;
+    const timeStr = r.responseTimeMs != null ? r.responseTimeMs + 'ms' : '—';
+    const codeStr = r.httpCode ? ` · HTTP ${r.httpCode}` : '';
+    return `<div class="url-row ${rowCls}">
+      <span class="status-indicator ${dotCls}"></span>
+      <div class="url-info">
+        <div class="url-name">${escHtml(r.name)}</div>
+        <div class="url-href">${escHtml(r.url)}</div>
+      </div>
+      <span class="tag ${typeCls}">${TYPE_LABEL[r.type] || r.type}</span>
+      <span class="tag ${tagCls}">${statusText}${codeStr}</span>
+      <div class="url-time">${timeStr}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderSummary(results) {
+  const total = results.length;
+  const ok = results.filter(r => r.status === 'ok').length;
+  const warns = results.filter(r => ['slow','warn','redirect'].includes(r.status)).length;
+  const errs = results.filter(r => r.status === 'error').length;
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-ok').textContent = ok;
+  document.getElementById('s-warn').textContent = warns;
+  document.getElementById('s-err').textContent = errs;
+
+  const dot = document.getElementById('live-dot');
+  const label = document.getElementById('status-label');
+  if (errs > 0) {
+    dot.classList.add('dead');
+    label.textContent = `${errs} erro(s) detectado(s) — alerta enviado no Discord`;
+  } else if (warns > 0) {
+    dot.classList.remove('dead');
+    label.textContent = `${warns} alerta(s) de lentidão ou redirect`;
+  } else {
+    dot.classList.remove('dead');
+    label.textContent = `Tudo online — ${ok}/${total} URLs OK`;
+  }
+}
+
+async function runChecks() {
+  const btn = document.getElementById('run-btn');
+  const icon = document.getElementById('run-icon');
+  btn.disabled = true;
+  icon.className = 'spin';
+  icon.textContent = '↻';
+
+  addLog('Iniciando verificação...', 'sys');
+  const bar = document.getElementById('progress');
+  bar.style.width = '10%';
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (CRON_SECRET) headers['x-cron-secret'] = CRON_SECRET;
+
+    const res = await fetch('/api/check?notify=false', { headers });
+    bar.style.width = '80%';
+
+    if (!res.ok) {
+      const txt = await res.text();
+      addLog(`Erro HTTP ${res.status}: ${txt}`, 'err');
+      return;
+    }
+
+    const data = await res.json();
+    bar.style.width = '100%';
+    lastResults = data.results || [];
+
+    renderResults(lastResults);
+    renderSummary(lastResults);
+
+    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    document.getElementById('last-check').textContent = `Última verificação: ${now}`;
+
+    lastResults.forEach(r => {
+      if (r.status === 'ok') {
+        addLog(`✓ ${r.name} — HTTP ${r.httpCode} · ${r.responseTimeMs}ms`, 'ok');
+      } else if (r.status === 'slow') {
+        addLog(`⚠ ${r.name} — Lento: ${r.responseTimeMs}ms (HTTP ${r.httpCode})`, 'warn');
+      } else if (r.status === 'redirect') {
+        addLog(`↪ ${r.name} — Redirect inesperado (HTTP ${r.httpCode})`, 'warn');
+      } else if (r.status === 'error') {
+        addLog(`✗ ${r.name} — ${r.error || 'HTTP ' + r.httpCode}`, 'err');
+      }
+    });
+
+    const errCount = lastResults.filter(r => r.status === 'error').length;
+    if (errCount > 0) {
+      addLog(`🚨 ${errCount} URL(s) com erro — alerta disparado no Discord`, 'err');
+    } else {
+      addLog('Verificação concluída — sem problemas críticos.', 'sys');
+    }
+  } catch (e) {
+    addLog(`Erro ao chamar /api/check: ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+    icon.className = '';
+    icon.textContent = '↻';
+    setTimeout(() => { bar.style.transition = 'opacity 0.8s'; bar.style.opacity = '0'; }, 1500);
+    setTimeout(() => { bar.style.width = '0%'; bar.style.opacity = '1'; bar.style.transition = 'width 0.2s'; }, 2400);
+  }
+}
+
+// Auto-run on load
+window.addEventListener('load', () => setTimeout(runChecks, 600));
+</script>
+</body>
+</html>

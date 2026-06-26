@@ -1,0 +1,16 @@
+{
+  "name": "stlflix-lp-monitor",
+  "version": "1.0.0",
+  "description": "Health monitor para landing pages e checkouts da STLFLIX",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "devDependencies": {
+    "vercel": "^34.0.0"
+  }
+}
