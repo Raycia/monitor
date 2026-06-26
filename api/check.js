@@ -15,13 +15,6 @@ const { sendDiscordAlert, sendDiscordOk } = require('../lib/discord');
 
 module.exports = async function handler(req, res) {
   // Opcional: proteção por secret para evitar chamadas públicas abusivas
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const provided = req.headers['x-cron-secret'] || req.query.secret;
-    if (provided !== secret) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  }
 
   const shouldNotify = req.query.notify === 'true' || req.headers['x-notify'] === 'true';
 
